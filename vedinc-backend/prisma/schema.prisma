@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum LessonType {
+  VIDEO
+  PDF
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         UserRole @default(USER)
+
+  bio    String?
+  title  String?
+  avatar String?
+
+  createdAt DateTime @default(now())
+
+  enrollments Enrollment[]
+  courses     Course[] @relation("InstructorCourses")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  courses   Course[]
+  resources Resource[]
+}
+
+model Course {
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  price        Float
+  thumbnail    String?
+  instructorId String?
+  categoryId   String
+  level        String?
+  duration     String?
+  createdAt    DateTime @default(now())
+
+  instructor User?    @relation("InstructorCourses", fields: [instructorId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  modules     Module[]
+  enrollments Enrollment[]
+  objectives  CourseObjective[]   // ✅ Added
+}
+
+model CourseObjective {
+  id        String   @id @default(uuid())
+  text      String
+  courseId  String
+  createdAt DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Module {
+  id        String   @id @default(uuid())
+  title     String
+  courseId  String
+  createdAt DateTime @default(now())
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+}
+
+model Lesson {
+  id         String     @id @default(uuid())
+  title      String
+  type       LessonType
+  contentUrl String?
+  duration   String?
+  moduleId   String
+  createdAt  DateTime   @default(now())
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+}
+
+model Enrollment {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  status String @default("ACTIVE")
+
+  fullName String
+  email    String
+  phone    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+}
+
+model Resource {
+  id         String   @id @default(uuid())
+  title      String
+  fileUrl    String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
