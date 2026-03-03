@@ -61,6 +61,7 @@ export default function Courses() {
     const [editingCourse, setEditingCourse] = useState<Course | null>(null);
     const [levelOpen, setLevelOpen] = useState(false);
     const [instructorOpen, setInstructorOpen] = useState(false);
+    const [categoryOpen, setCategoryOpen] = useState(false);
 
     /* ================= LOAD DATA ================= */
 
@@ -235,17 +236,32 @@ export default function Courses() {
                         className="bg-black/30 border border-white/10 rounded-xl px-4 py-3"
                     />
 
-                    <select
-                        value={categoryId}
-                        onChange={(e) => setCategoryId(e.target.value)}
-                        className="bg-black/30 border border-white/10 rounded-xl px-4 py-3"
-                    >
-                        {categories.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                                {cat.name}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="relative w-full">
+                        <button
+                            type="button"
+                            onClick={() => setCategoryOpen(!categoryOpen)}
+                            className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-left text-slate-200"
+                        >
+                            {categories.find(c => c.id === categoryId)?.name || "Select Category"}
+                        </button>
+
+                        {categoryOpen && (
+                            <div className="absolute left-0 mt-2 w-full bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto">
+                                {categories.map((cat) => (
+                                    <div
+                                        key={cat.id}
+                                        onClick={() => {
+                                            setCategoryId(cat.id);
+                                            setCategoryOpen(false);
+                                        }}
+                                        className="px-4 py-3 hover:bg-cyan-500/20 cursor-pointer text-slate-300"
+                                    >
+                                        {cat.name}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     <div className="relative w-full">
                         <button
