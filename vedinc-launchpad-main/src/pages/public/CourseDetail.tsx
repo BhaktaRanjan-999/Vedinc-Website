@@ -6,6 +6,9 @@ import {
     ChevronRight,
     PlayCircle,
     FileText,
+    Clock,
+    BarChart3,
+    CheckCircle
 } from "lucide-react";
 import ParticlesBackground from "@/components/ParticlesBackground";
 
@@ -50,9 +53,7 @@ type Course = {
     objectives?: Objective[];
 };
 
-/* ================= COMPONENT ================= */
-
-export default function CourseDetail() {
+export default function CourseDetails() {
     const { id } = useParams();
 
     const [course, setCourse] = useState<Course | null>(null);
@@ -77,18 +78,6 @@ export default function CourseDetail() {
             try {
                 const data = await api.getCourseContent(id);
                 setCourse(data);
-
-                const storedEmail = localStorage.getItem(
-                    `course_email_${id}`
-                );
-
-                if (storedEmail) {
-                    const enrollmentRes = await api.checkEnrollment(
-                        id,
-                        storedEmail
-                    );
-                    setIsEnrolled(enrollmentRes.enrolled);
-                }
             } catch (err) {
                 console.error(err);
             } finally {
@@ -99,43 +88,6 @@ export default function CourseDetail() {
         load();
     }, [id]);
 
-    /* ================= ENROLL ================= */
-
-    const handleEnroll = async () => {
-        if (!id) return;
-
-        if (!formData.fullName || !formData.email || !formData.phone) {
-            alert("All fields required");
-            return;
-        }
-
-        try {
-            setEnrolling(true);
-
-            const res = await api.initiateEnrollment({
-                courseId: id,
-                ...formData,
-            });
-
-            if (res.message) {
-                localStorage.setItem(
-                    `course_email_${id}`,
-                    formData.email
-                );
-
-                setIsEnrolled(true);
-                setShowModal(false);
-                alert("Enrollment successful 🎉");
-            } else {
-                alert("Enrollment failed");
-            }
-        } catch (error: any) {
-            alert(error?.message || "Enrollment failed");
-        } finally {
-            setEnrolling(false);
-        }
-    };
-
     const toggleModule = (moduleId: string) => {
         setExpandedModules((prev) =>
             prev.includes(moduleId)
@@ -144,27 +96,19 @@ export default function CourseDetail() {
         );
     };
 
-    /* ================= STATES ================= */
-
-    if (loading) {
+    if (loading)
         return (
-            <div className="relative min-h-screen bg-black text-white flex items-center justify-center">
-                <ParticlesBackground />
-                <div className="relative z-10">Loading...</div>
+            <div className="min-h-screen flex items-center justify-center text-white bg-black">
+                Loading...
             </div>
         );
-    }
 
-    if (!course) {
+    if (!course)
         return (
-            <div className="relative min-h-screen bg-black text-white flex items-center justify-center">
-                <ParticlesBackground />
-                <div className="relative z-10">Course not found.</div>
+            <div className="min-h-screen flex items-center justify-center text-white bg-black">
+                Course not found
             </div>
         );
-    }
-
-    /* ================= UI ================= */
 
     return (
         <div className="relative min-h-screen bg-black text-gray-300 overflow-hidden">
@@ -178,14 +122,66 @@ export default function CourseDetail() {
 
                         {/* HERO */}
                         <div className="space-y-6">
-                            <h1 className="text-5xl font-extrabold text-white">
+                            <h1 className="text-5xl font-extrabold text-white leading-tight">
                                 {course.title}
                             </h1>
 
                             <p className="text-lg text-gray-400 max-w-3xl">
                                 {course.description}
                             </p>
+
+                            {/* LEVEL + DURATION */}
+                            <div className="flex gap-4 pt-4">
+
+                                {course.level && (
+                                    <div className="flex items-center gap-3 bg-[#151e2b] px-6 py-4 rounded-xl border border-white/10">
+                                        <BarChart3 className="text-cyan-400" size={18} />
+                                        <div>
+                                            <p className="text-xs text-gray-400">Level</p>
+                                            <p className="text-white font-semibold">{course.level}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {course.duration && (
+                                    <div className="flex items-center gap-3 bg-[#151e2b] px-6 py-4 rounded-xl border border-white/10">
+                                        <Clock className="text-purple-400" size={18} />
+                                        <div>
+                                            <p className="text-xs text-gray-400">Duration</p>
+                                            <p className="text-white font-semibold">{course.duration}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
                         </div>
+
+                        {/* INSTRUCTOR */}
+                        {course.instructor && (
+                            <div className="bg-[#151e2b] border border-white/10 rounded-xl p-8">
+                                <h3 className="text-xl font-bold text-white mb-6">
+                                    Instructor
+                                </h3>
+
+                                <div className="flex items-start gap-6">
+                                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center text-white font-bold text-3xl">
+                                        {course.instructor.name.charAt(0)}
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-xl font-bold text-white">
+                                            {course.instructor.name}
+                                        </h4>
+
+                                        {course.instructor.bio && (
+                                            <p className="text-sm text-gray-400 mt-3 max-w-xl">
+                                                {course.instructor.bio}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* CURRICULUM */}
                         <div>
@@ -195,19 +191,16 @@ export default function CourseDetail() {
 
                             <div className="space-y-4">
                                 {course.modules.map((module, index) => {
-                                    const expanded =
-                                        expandedModules.includes(module.id);
+                                    const expanded = expandedModules.includes(module.id);
 
                                     return (
                                         <div
                                             key={module.id}
-                                            className="bg-[#151e2b] border border-white/10 rounded-xl"
+                                            className="bg-[#151e2b] border border-white/10 rounded-xl overflow-hidden"
                                         >
                                             <div
-                                                className="flex justify-between items-center p-5 cursor-pointer hover:bg-white/5"
-                                                onClick={() =>
-                                                    toggleModule(module.id)
-                                                }
+                                                className="flex justify-between items-center p-5 cursor-pointer hover:bg-white/5 transition"
+                                                onClick={() => toggleModule(module.id)}
                                             >
                                                 <div className="flex items-center gap-3 text-white font-semibold">
                                                     {expanded ? (
@@ -215,8 +208,7 @@ export default function CourseDetail() {
                                                     ) : (
                                                         <ChevronRight size={18} />
                                                     )}
-                                                    Module {index + 1}:{" "}
-                                                    {module.title}
+                                                    Module {index + 1}: {module.title}
                                                 </div>
 
                                                 <span className="text-xs text-gray-500">
@@ -226,53 +218,26 @@ export default function CourseDetail() {
 
                                             {expanded && (
                                                 <div className="border-t border-white/10">
-                                                    {module.lessons.map(
-                                                        (lesson) => (
-                                                            <div
-                                                                key={lesson.id}
-                                                                onClick={() => {
-                                                                    if (
-                                                                        isEnrolled &&
-                                                                        lesson.type ===
-                                                                        "PDF" &&
-                                                                        lesson.contentUrl
-                                                                    ) {
-                                                                        window.open(
-                                                                            lesson.contentUrl,
-                                                                            "_blank"
-                                                                        );
-                                                                    }
-                                                                }}
-                                                                className={`flex justify-between items-center p-4 border-b border-white/5 ${isEnrolled
-                                                                    ? "cursor-pointer hover:bg-white/5"
-                                                                    : "opacity-60 cursor-not-allowed"
-                                                                    }`}
-                                                            >
-                                                                <div className="flex items-center gap-3 text-sm">
-                                                                    {lesson.type ===
-                                                                        "VIDEO" ? (
-                                                                        <PlayCircle
-                                                                            size={16}
-                                                                            className="text-cyan-400"
-                                                                        />
-                                                                    ) : (
-                                                                        <FileText
-                                                                            size={16}
-                                                                            className="text-purple-400"
-                                                                        />
-                                                                    )}
-                                                                    {lesson.title}
-                                                                </div>
+                                                    {module.lessons.map((lesson) => (
+                                                        <div
+                                                            key={lesson.id}
+                                                            className="flex justify-between items-center p-4 border-b border-white/5 last:border-0"
+                                                        >
+                                                            <div className="flex items-center gap-3 text-sm">
+                                                                {lesson.type === "VIDEO" ? (
+                                                                    <PlayCircle size={16} className="text-cyan-400" />
+                                                                ) : (
+                                                                    <FileText size={16} className="text-purple-400" />
+                                                                )}
 
-                                                                <span className="text-xs text-gray-400">
-                                                                    {isEnrolled
-                                                                        ? lesson.duration ||
-                                                                        "Available"
-                                                                        : "Locked"}
-                                                                </span>
+                                                                {lesson.title}
                                                             </div>
-                                                        )
-                                                    )}
+
+                                                            <span className="text-xs text-gray-400">
+                                                                {lesson.duration || "Available"}
+                                                            </span>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>
@@ -280,117 +245,61 @@ export default function CourseDetail() {
                                 })}
                             </div>
                         </div>
+
                     </div>
 
                     {/* RIGHT SIDEBAR */}
-                    <div className="self-start sticky top-32">
-                        <div className="bg-[#1a2433] border border-white/10 rounded-2xl p-8 space-y-5">
-                            <span className="text-4xl font-extrabold text-white">
-                                ₹{course.price.toLocaleString()}
-                            </span>
+                    <div className="self-start sticky top-28 h-fit">
 
+                        <div className="bg-gradient-to-b from-[#1a2433] to-[#141c2a] border border-white/10 rounded-2xl p-8 space-y-6 shadow-2xl">
+
+                            {/* PRICE */}
+                            <div className="space-y-2">
+                                <p className="text-sm text-gray-400">Course Price</p>
+                                <span className="text-4xl font-extrabold text-white">
+                                    ₹{course.price.toLocaleString()}
+                                </span>
+                            </div>
+
+                            {/* BUTTON */}
                             <button
                                 onClick={() => setShowModal(true)}
                                 disabled={isEnrolled}
-                                className={`w-full h-14 rounded-xl font-bold text-white ${isEnrolled
-                                    ? "bg-green-600 cursor-not-allowed"
-                                    : "bg-blue-600 hover:bg-blue-500"
+                                className={`w-full h-14 rounded-xl font-bold text-white text-lg transition shadow-lg
+                  ${isEnrolled
+                                        ? "bg-green-600 cursor-not-allowed"
+                                        : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400"
                                     }`}
                             >
                                 {isEnrolled ? "Enrolled ✓" : "Enroll Now →"}
                             </button>
-                            {course.objectives && course.objectives.length > 0 && (
-                                <>
-                                    <div className="border-t border-white/10" />
-                                    <div className="p-2 space-y-5">
-                                        <h4 className="text-white font-semibold tracking-wide text-lg">
-                                            WHAT YOU'LL LEARN:
-                                        </h4>
 
-                                        <ul className="space-y-3 text-gray-300 text-sm">
-                                            {course.objectives.map((obj) => (
-                                                <li
-                                                    key={obj.id}
-                                                    className="flex items-start gap-3"
-                                                >
-                                                    <span className="text-green-400 mt-1">
-                                                        ✔
-                                                    </span>
-                                                    <span>{obj.text}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </>
+                            {/* OBJECTIVES */}
+                            {course.objectives && course.objectives.length > 0 && (
+                                <div className="pt-6 border-t border-white/10">
+                                    <h3 className="text-lg font-semibold text-white mb-4">
+                                        What You'll Learn
+                                    </h3>
+
+                                    <ul className="space-y-3 text-gray-300 text-sm">
+                                        {course.objectives.map((obj) => (
+                                            <li key={obj.id} className="flex gap-3">
+                                                <CheckCircle
+                                                    size={16}
+                                                    className="text-green-400 mt-0.5"
+                                                />
+                                                <span>{obj.text}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
                             )}
+
                         </div>
+
                     </div>
                 </div>
             </div>
-
-            {/* MODAL */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-                    <div className="bg-[#151e2b] p-8 rounded-xl w-full max-w-lg space-y-4">
-                        <h3 className="text-xl font-bold text-white">
-                            Enter Your Details
-                        </h3>
-
-                        <input
-                            placeholder="Full Name"
-                            value={formData.fullName}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    fullName: e.target.value,
-                                })
-                            }
-                            className="w-full h-10 px-3 bg-black border border-white/10 text-white"
-                        />
-
-                        <input
-                            placeholder="Email"
-                            value={formData.email}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    email: e.target.value,
-                                })
-                            }
-                            className="w-full h-10 px-3 bg-black border border-white/10 text-white"
-                        />
-
-                        <input
-                            placeholder="Phone"
-                            value={formData.phone}
-                            onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    phone: e.target.value,
-                                })
-                            }
-                            className="w-full h-10 px-3 bg-black border border-white/10 text-white"
-                        />
-
-                        <div className="flex justify-end gap-4 pt-4">
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="px-4 py-2 bg-gray-600"
-                            >
-                                Cancel
-                            </button>
-
-                            <button
-                                onClick={handleEnroll}
-                                disabled={enrolling}
-                                className="px-4 py-2 bg-blue-600"
-                            >
-                                {enrolling ? "Processing..." : "Confirm"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
