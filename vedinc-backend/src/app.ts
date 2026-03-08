@@ -40,3 +40,5 @@ app.use("/api", routes);
 app.use("/uploads", express.static("uploads"));
 
 app.use(errorHandler);
+
+export default app;
