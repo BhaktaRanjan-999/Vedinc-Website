@@ -8,11 +8,13 @@ import userRoutes from "./modules/user/user.routes";
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(helmet());
 
 app.use(
     cors({
-        origin: process.env.FRONTEND_URL,
+        origin: process.env.FRONTEND_URL || "http://localhost:8080",
         credentials: true,
     })
 );
@@ -21,21 +23,20 @@ app.use(
     rateLimit({
         windowMs: 15 * 60 * 1000,
         max: 200,
+        standardHeaders: true,
+        legacyHeaders: false,
         message: "Too many requests, please try again later.",
     })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
-// 👇 IMPORTANT
+app.get("/health", (_, res) => {
+    res.status(200).json({ status: "ok" });
+});
+
 app.use("/api/users", userRoutes);
-
-// existing routes
 app.use("/api", routes);
-
-// optional: serve uploaded images
 app.use("/uploads", express.static("uploads"));
 
 app.use(errorHandler);
-
-export default app;
