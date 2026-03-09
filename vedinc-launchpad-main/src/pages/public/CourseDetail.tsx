@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/lib/api";
+import toast from "react-hot-toast";
 import {
     ChevronDown,
     ChevronRight,
-    CheckCircle,
     PlayCircle,
     FileText,
+    Clock,
+    BarChart3,
+    CheckCircle
 } from "lucide-react";
 import ParticlesBackground from "@/components/ParticlesBackground";
 
@@ -29,6 +32,7 @@ type Module = {
 type Instructor = {
     id: string;
     name: string;
+    title?: string;
     bio?: string;
     avatar?: string;
 };
@@ -50,16 +54,12 @@ type Course = {
     objectives?: Objective[];
 };
 
-/* ================= COMPONENT ================= */
-
 export default function CourseDetails() {
     const { id } = useParams();
 
     const [course, setCourse] = useState<Course | null>(null);
     const [loading, setLoading] = useState(true);
-
     const [expandedModules, setExpandedModules] = useState<string[]>([]);
-
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [enrolling, setEnrolling] = useState(false);
@@ -70,7 +70,7 @@ export default function CourseDetails() {
         phone: "",
     });
 
-    /* ================= LOAD COURSE ================= */
+    /* ================= LOAD ================= */
 
     useEffect(() => {
         if (!id) return;
@@ -89,33 +89,6 @@ export default function CourseDetails() {
         load();
     }, [id]);
 
-    /* ================= ENROLL ================= */
-
-    const handleEnroll = async () => {
-        if (!id) return;
-
-        try {
-            setEnrolling(true);
-
-            const res = await api.initiateEnrollment({
-                courseId: id,
-                ...formData,
-            });
-
-            if (res.enrollment) {
-                setIsEnrolled(true);
-                setShowModal(false);
-                alert("Enrollment successful 🎉");
-            }
-        } catch (error: any) {
-            alert(error?.message || "Enrollment failed");
-        } finally {
-            setEnrolling(false);
-        }
-    };
-
-    /* ================= MODULE TOGGLE ================= */
-
     const toggleModule = (moduleId: string) => {
         setExpandedModules((prev) =>
             prev.includes(moduleId)
@@ -124,27 +97,57 @@ export default function CourseDetails() {
         );
     };
 
-    /* ================= LOADING ================= */
+    /* ================= ENROLL ================= */
 
-    if (loading) {
+    const handleEnroll = async () => {
+
+        if (!id) return;
+
+        if (!formData.fullName || !formData.email || !formData.phone) {
+            toast.error("Please fill all fields");
+            return;
+        }
+
+        try {
+
+            setEnrolling(true);
+
+            const res = await api.initiateEnrollment({
+                courseId: id,
+                ...formData,
+            });
+
+            if (res && res.message) {
+
+                toast.success("Enrollment successful 🎉");
+
+                setIsEnrolled(true);
+                setShowModal(false);
+
+            } else {
+                toast.error("Enrollment failed");
+            }
+
+        } catch (error: any) {
+            toast.error(error?.message || "Enrollment failed");
+        } finally {
+            setEnrolling(false);
+        }
+    };
+
+    if (loading)
         return (
-            <div className="relative min-h-screen bg-black flex items-center justify-center text-white">
-                <ParticlesBackground />
-                <div className="relative z-10">Loading...</div>
+            <div className="min-h-screen flex items-center justify-center text-white bg-black">
+                Loading...
             </div>
         );
-    }
 
-    if (!course) {
+    if (!course)
         return (
-            <div className="relative min-h-screen bg-black flex items-center justify-center text-white">
-                <ParticlesBackground />
-                <div className="relative z-10">Course not found</div>
+            <div className="min-h-screen flex items-center justify-center text-white bg-black">
+                Course not found
             </div>
         );
-    }
-
-    /* ================= UI ================= */
 
     return (
         <div className="relative min-h-screen bg-black text-gray-300 overflow-hidden">
@@ -154,45 +157,72 @@ export default function CourseDetails() {
                 <div className="max-w-[1280px] mx-auto grid lg:grid-cols-[1fr_380px] gap-16">
 
                     {/* LEFT SIDE */}
-
                     <div className="space-y-16">
 
                         {/* HERO */}
-
                         <div className="space-y-6">
-                            <h1 className="text-5xl font-extrabold text-white">
+                            <h1 className="text-5xl font-extrabold text-white leading-tight">
                                 {course.title}
                             </h1>
 
-                            <p className="text-lg text-gray-400">
+                            <p className="text-lg text-gray-400 max-w-3xl">
                                 {course.description}
                             </p>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6">
+                            {/* LEVEL + DURATION */}
+                            <div className="flex gap-4 pt-4">
+
                                 {course.level && (
-                                    <div className="bg-[#151e2b] p-4 rounded-lg border border-white/10 text-center">
-                                        <p className="text-xs text-gray-400">Level</p>
-                                        <p className="text-white font-semibold">
-                                            {course.level}
-                                        </p>
+                                    <div className="flex items-center gap-3 bg-[#151e2b] px-6 py-4 rounded-xl border border-white/10">
+                                        <BarChart3 className="text-cyan-400" size={18} />
+                                        <div>
+                                            <p className="text-xs text-gray-400">Level</p>
+                                            <p className="text-white font-semibold">{course.level}</p>
+                                        </div>
                                     </div>
                                 )}
 
                                 {course.duration && (
-                                    <div className="bg-[#151e2b] p-4 rounded-lg border border-white/10 text-center">
-                                        <p className="text-xs text-gray-400">Duration</p>
-                                        <p className="text-white font-semibold">
-                                            {course.duration}
-                                        </p>
+                                    <div className="flex items-center gap-3 bg-[#151e2b] px-6 py-4 rounded-xl border border-white/10">
+                                        <Clock className="text-purple-400" size={18} />
+                                        <div>
+                                            <p className="text-xs text-gray-400">Duration</p>
+                                            <p className="text-white font-semibold">{course.duration}</p>
+                                        </div>
                                     </div>
                                 )}
+
                             </div>
                         </div>
 
+                        {/* INSTRUCTOR */}
+                        {course.instructor && (
+                            <div className="bg-[#151e2b] border border-white/10 rounded-xl p-8">
+                                <h3 className="text-xl font-bold text-white mb-6">
+                                    Instructor
+                                </h3>
 
+                                <div className="flex items-start gap-6">
+                                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center text-white font-bold text-3xl">
+                                        {course.instructor.name.charAt(0)}
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-xl font-bold text-white">
+                                            {course.instructor.name}
+                                        </h4>
+
+                                        {course.instructor.bio && (
+                                            <p className="text-sm text-gray-400 mt-3 max-w-xl">
+                                                {course.instructor.bio}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* CURRICULUM */}
-
                         <div>
                             <h3 className="text-2xl font-bold text-white mb-6">
                                 Course Curriculum
@@ -200,7 +230,6 @@ export default function CourseDetails() {
 
                             <div className="space-y-4">
                                 {course.modules.map((module, index) => {
-
                                     const expanded = expandedModules.includes(module.id);
 
                                     return (
@@ -209,8 +238,8 @@ export default function CourseDetails() {
                                             className="bg-[#151e2b] border border-white/10 rounded-xl overflow-hidden"
                                         >
                                             <div
+                                                className="flex justify-between items-center p-5 cursor-pointer hover:bg-white/5 transition"
                                                 onClick={() => toggleModule(module.id)}
-                                                className="flex justify-between items-center p-5 cursor-pointer hover:bg-white/5"
                                             >
                                                 <div className="flex items-center gap-3 text-white font-semibold">
                                                     {expanded ? (
@@ -228,22 +257,18 @@ export default function CourseDetails() {
 
                                             {expanded && (
                                                 <div className="border-t border-white/10">
-
                                                     {module.lessons.map((lesson) => (
-
                                                         <div
                                                             key={lesson.id}
                                                             onClick={() => {
 
-                                                                if (
-                                                                    isEnrolled &&
-                                                                    lesson.type === "PDF" &&
-                                                                    lesson.contentUrl
-                                                                ) {
-                                                                    window.open(
-                                                                        lesson.contentUrl,
-                                                                        "_blank"
-                                                                    );
+                                                                if (!isEnrolled) {
+                                                                    toast.error("Please enroll to access lessons");
+                                                                    return;
+                                                                }
+
+                                                                if (lesson.type === "PDF" && lesson.contentUrl) {
+                                                                    window.open(lesson.contentUrl, "_blank");
                                                                 }
 
                                                             }}
@@ -253,89 +278,71 @@ export default function CourseDetails() {
                                                                     : "cursor-not-allowed opacity-60"
                                                                 }`}
                                                         >
-
                                                             <div className="flex items-center gap-3 text-sm">
-
                                                                 {lesson.type === "VIDEO" ? (
-                                                                    <PlayCircle
-                                                                        size={16}
-                                                                        className="text-cyan-400"
-                                                                    />
+                                                                    <PlayCircle size={16} className="text-cyan-400" />
                                                                 ) : (
-                                                                    <FileText
-                                                                        size={16}
-                                                                        className="text-purple-400"
-                                                                    />
+                                                                    <FileText size={16} className="text-purple-400" />
                                                                 )}
 
                                                                 {lesson.title}
-
                                                             </div>
 
                                                             <span className="text-xs text-gray-400">
-                                                                {isEnrolled
-                                                                    ? lesson.duration || "Available"
-                                                                    : "Locked"}
+                                                                {lesson.duration || "Available"}
                                                             </span>
-
                                                         </div>
-
                                                     ))}
-
                                                 </div>
                                             )}
-
                                         </div>
                                     );
                                 })}
                             </div>
                         </div>
+
                     </div>
 
                     {/* RIGHT SIDEBAR */}
+                    <div className="self-start sticky top-28 h-fit">
 
-                    <div className="self-start sticky top-32 h-fit">
+                        <div className="bg-gradient-to-b from-[#1a2433] to-[#141c2a] border border-white/10 rounded-2xl p-8 space-y-6 shadow-2xl">
 
-                        <div className="bg-[#1a2433] border border-white/10 rounded-2xl shadow-2xl">
-
-                            <div className="p-8 space-y-5">
-
+                            <div className="space-y-2">
+                                <p className="text-sm text-gray-400">Course Price</p>
                                 <span className="text-4xl font-extrabold text-white">
-                                    ₹{course.price}
+                                    ₹{course.price.toLocaleString()}
                                 </span>
-
-                                <button
-                                    onClick={() => setShowModal(true)}
-                                    disabled={isEnrolled}
-                                    className={`w-full h-14 rounded-xl font-bold text-white text-lg transition-all duration-300
-                                    ${isEnrolled
-                                            ? "bg-green-600 cursor-not-allowed"
-                                            : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400"
-                                        }`}
-                                >
-                                    {isEnrolled ? "Enrolled ✓" : "Enroll Now →"}
-                                </button>
-                                {/* OBJECTIVES */}
-                                {course.objectives && course.objectives.length > 0 && (
-                                    <div className="pt-6 border-t border-white/10">
-                                        <h3 className="text-lg font-semibold text-white mb-4">
-                                            What You'll Learn
-                                        </h3>
-
-                                        <ul className="space-y-3 text-gray-300 text-sm">
-                                            {course.objectives.map((obj) => (
-                                                <li key={obj.id} className="flex gap-3">
-                                                    <CheckCircle
-                                                        size={16}
-                                                        className="text-green-400 mt-0.5"
-                                                    />
-                                                    <span>{obj.text}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
                             </div>
+
+                            <button
+                                onClick={() => setShowModal(true)}
+                                disabled={isEnrolled}
+                                className={`w-full h-14 rounded-xl font-bold text-white text-lg transition shadow-lg
+                  ${isEnrolled
+                                        ? "bg-green-600 cursor-not-allowed"
+                                        : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400"
+                                    }`}
+                            >
+                                {isEnrolled ? "Enrolled ✓" : "Enroll Now →"}
+                            </button>
+
+                            {course.objectives && course.objectives.length > 0 && (
+                                <div className="pt-6 border-t border-white/10">
+                                    <h3 className="text-lg font-semibold text-white mb-4">
+                                        What You'll Learn
+                                    </h3>
+
+                                    <ul className="space-y-3 text-gray-300 text-sm">
+                                        {course.objectives.map((obj) => (
+                                            <li key={obj.id} className="flex gap-3">
+                                                <CheckCircle size={16} className="text-green-400 mt-0.5" />
+                                                <span>{obj.text}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                         </div>
 
@@ -343,9 +350,10 @@ export default function CourseDetails() {
                 </div>
             </div>
 
-            {/* ================= ENROLLMENT MODAL ================= */}
+            {/* ENROLL MODAL */}
 
             {showModal && (
+
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
 
                     <div className="bg-[#151e2b] p-8 rounded-xl w-full max-w-lg space-y-4">
@@ -358,10 +366,7 @@ export default function CourseDetails() {
                             placeholder="Full Name"
                             value={formData.fullName}
                             onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    fullName: e.target.value,
-                                })
+                                setFormData({ ...formData, fullName: e.target.value })
                             }
                             className="w-full h-10 px-3 rounded-md bg-[#0B1120] border border-white/10 text-white"
                         />
@@ -370,10 +375,7 @@ export default function CourseDetails() {
                             placeholder="Email"
                             value={formData.email}
                             onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    email: e.target.value,
-                                })
+                                setFormData({ ...formData, email: e.target.value })
                             }
                             className="w-full h-10 px-3 rounded-md bg-[#0B1120] border border-white/10 text-white"
                         />
@@ -382,10 +384,7 @@ export default function CourseDetails() {
                             placeholder="Phone"
                             value={formData.phone}
                             onChange={(e) =>
-                                setFormData({
-                                    ...formData,
-                                    phone: e.target.value,
-                                })
+                                setFormData({ ...formData, phone: e.target.value })
                             }
                             className="w-full h-10 px-3 rounded-md bg-[#0B1120] border border-white/10 text-white"
                         />
@@ -408,9 +407,13 @@ export default function CourseDetails() {
                             </button>
 
                         </div>
+
                     </div>
+
                 </div>
+
             )}
+
         </div>
     );
 }
