@@ -96,16 +96,6 @@ const Login = () => {
                             {loading ? "Logging in..." : "Login"}
                         </button>
                     </form>
-
-                    <div className="mt-6 text-center text-xs text-white/50">
-                        Don’t have an account?{" "}
-                        <Link
-                            to="/signup"
-                            className="text-cyan-400 hover:underline"
-                        >
-                            Sign Up
-                        </Link>
-                    </div>
                 </div>
             </div>
         </VantaBackground>
